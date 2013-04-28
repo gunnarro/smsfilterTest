@@ -1,15 +1,15 @@
 package com.gunnarro.android.smsfilter.test;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import junit.framework.TestCase;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
-import com.gunnarro.android.smsfilter.AppPreferences;
-import com.gunnarro.android.smsfilter.ListAppPreferencesImpl;
-import com.gunnarro.android.smsfilter.sms.SMSFilter;
-import com.gunnarro.android.smsfilter.sms.SMSFilter.FilterTypeEnum;
+import com.gunnarro.android.smsfilter.service.FilterService;
+import com.gunnarro.android.smsfilter.service.SMSFilter;
+import com.gunnarro.android.smsfilter.service.impl.FilterServiceImpl;
+import com.gunnarro.android.smsfilter.service.impl.FilterServiceImpl.FilterTypeEnum;
 
 public class SMSFilterTest extends TestCase {
 
@@ -21,26 +21,19 @@ public class SMSFilterTest extends TestCase {
         prefsEditorMock = mock(Editor.class);
         // Mock the logging of blocked sms part of the smsfilter class
         String blockedNumbersLogList = "";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_BLOCKED_LOG, AppPreferences.DEFAULT_VALUE)).thenReturn(blockedNumbersLogList);
-        when(prefsEditorMock.putString(AppPreferences.SMS_BLOCKED_LOG, blockedNumbersLogList)).thenReturn(null);
+        when(sharedPreferencesMock.getString("SMS_BLOCKED_LOG", FilterService.DEFAULT_VALUE)).thenReturn(blockedNumbersLogList);
+        when(prefsEditorMock.putString("SMS_BLOCKED_LOG", blockedNumbersLogList)).thenReturn(null);
         when(prefsEditorMock.commit()).thenReturn(true);
-    }
-
-    public void testFilter() {
-        assertTrue(SMSFilter.FilterTypeEnum.ALLOW_ALL.isAllowAll());
-        assertTrue(SMSFilter.FilterTypeEnum.SMS_BLACK_LIST.isBlackList());
-        assertTrue(SMSFilter.FilterTypeEnum.SMS_WHITE_LIST.isWhiteList());
-        assertTrue(SMSFilter.FilterTypeEnum.SMS_CONTACTS.isContacts());
     }
 
     public void testBlackList() {
         init();
         String blackListAsString = "45465500:true;45465501:true;45465503:false";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_BLACK_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(blackListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_BLACK_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(blackListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
 
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         listAppPreferencesImpl.setPrefsEditor(prefsEditorMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
@@ -56,10 +49,10 @@ public class SMSFilterTest extends TestCase {
     public void testBlackListEmptyList() {
         init();
         String blackListAsString = "";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_BLACK_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(blackListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_BLACK_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(blackListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
 
@@ -73,11 +66,11 @@ public class SMSFilterTest extends TestCase {
     public void testBlackListBlockCountryCode() {
         init();
         String blackListAsString = "+45*:true;+46*:true;+47*:false";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_BLACK_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(blackListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_BLACK_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(blackListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
 
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         listAppPreferencesImpl.setPrefsEditor(prefsEditorMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
@@ -93,10 +86,10 @@ public class SMSFilterTest extends TestCase {
     public void testWhiteList() {
         init();
         String whiteListAsString = "45465500:true;45465501:true;45465502:false";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_WHITE_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(whiteListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_WHITE_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(whiteListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         listAppPreferencesImpl.setPrefsEditor(prefsEditorMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
@@ -112,11 +105,11 @@ public class SMSFilterTest extends TestCase {
         // Setup
         init();
         String whiteListAsString = "";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_WHITE_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(whiteListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_WHITE_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(whiteListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
 
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         listAppPreferencesImpl.setPrefsEditor(prefsEditorMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
@@ -131,10 +124,10 @@ public class SMSFilterTest extends TestCase {
     public void testWhiteListAllowCountryCode() {
         init();
         String whiteListAsString = "+45*:true;+46*:true;+47*:false";
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_WHITE_LIST, AppPreferences.DEFAULT_VALUE)).thenReturn(whiteListAsString);
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
+        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_WHITE_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(whiteListAsString);
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_WHITE_LIST.name());
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         listAppPreferencesImpl.setPrefsEditor(prefsEditorMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
@@ -146,9 +139,9 @@ public class SMSFilterTest extends TestCase {
 
     public void testContacts() {
         init();
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_CONTACTS.name());
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_CONTACTS.name());
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
+        FilterServiceImpl listAppPreferencesImpl = new FilterServiceImpl();
         listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
         smsFilter.setAppPreferences(listAppPreferencesImpl);
         assertFalse(smsFilter.isBlocked("45465500"));
@@ -159,11 +152,11 @@ public class SMSFilterTest extends TestCase {
 
     public void testAllowAll() {
         init();
-        when(sharedPreferencesMock.getString(AppPreferences.SMS_FILTER_TYPE, AppPreferences.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.ALLOW_ALL.name());
+        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.ALLOW_ALL.name());
         SMSFilter smsFilter = new SMSFilter();
-        ListAppPreferencesImpl listAppPreferencesImpl = new ListAppPreferencesImpl();
-        listAppPreferencesImpl.setAppSharedPrefs(sharedPreferencesMock);
-        smsFilter.setAppPreferences(listAppPreferencesImpl);
+        FilterServiceImpl filterServiceImpl = new FilterServiceImpl();
+        filterServiceImpl.setAppSharedPrefs(sharedPreferencesMock);
+        smsFilter.setAppPreferences(filterServiceImpl);
         assertFalse(smsFilter.isBlocked("45465500"));
         assertFalse(smsFilter.isBlocked("45465501"));
         assertFalse(smsFilter.isBlocked("45465502"));
@@ -171,13 +164,13 @@ public class SMSFilterTest extends TestCase {
     }
 
     public void testSearchFilter() {
-        assertTrue("+4745465500".matches(ListAppPreferencesImpl.createSearch("+47*")));
-        assertFalse("+4645465500".matches(ListAppPreferencesImpl.createSearch("+47*")));
-        assertFalse("+4545465500".matches(ListAppPreferencesImpl.createSearch("+47*")));
-        assertTrue("45465500".matches(ListAppPreferencesImpl.createSearch("45465500")));
-        assertFalse("45465500".matches(ListAppPreferencesImpl.createSearch("92019486")));
-        assertTrue("45465500".matches(ListAppPreferencesImpl.createSearch("4546550*")));
-        assertTrue("45465501".matches(ListAppPreferencesImpl.createSearch("4546550*")));
+        assertTrue("+4745465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertFalse("+4645465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertFalse("+4545465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertTrue("45465500".matches(FilterServiceImpl.createSearch("45465500")));
+        assertFalse("45465500".matches(FilterServiceImpl.createSearch("92019486")));
+        assertTrue("45465500".matches(FilterServiceImpl.createSearch("4546550*")));
+        assertTrue("45465501".matches(FilterServiceImpl.createSearch("4546550*")));
     }
 
 }

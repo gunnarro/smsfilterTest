@@ -5,7 +5,7 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
-import com.gunnarro.android.smsfilter.view.Item;
+import com.gunnarro.android.smsfilter.domain.Item;
 
 public class ItemTest extends TestCase {
 
@@ -38,8 +38,8 @@ public class ItemTest extends TestCase {
         list.add(Item.createItem("12345678:true"));
         list.add(Item.createItem("11223344:true"));
 
-        assertTrue(list.contains(new Item("11223344", true)));
-        assertTrue(list.contains(new Item("11223344", false)));
-        assertFalse(list.contains(new Item("11223345", true)));
+        assertTrue(list.contains(new Item(1, 1, "11223344", true)));
+        assertTrue(list.contains(new Item(2, 1, "11223344", false)));
+        assertFalse(list.contains(new Item(3, 1, "11223345", true)));
     }
 }
