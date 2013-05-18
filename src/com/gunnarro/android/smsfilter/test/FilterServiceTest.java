@@ -1,96 +1,195 @@
 package com.gunnarro.android.smsfilter.test;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.TestCase;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 
-import com.gunnarro.android.smsfilter.domain.SMS;
-import com.gunnarro.android.smsfilter.service.FilterService;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.gunnarro.android.smsfilter.domain.Filter;
+import com.gunnarro.android.smsfilter.domain.Item;
+import com.gunnarro.android.smsfilter.domain.SMSLog;
+import com.gunnarro.android.smsfilter.repository.impl.FilterRepositoryImpl;
 import com.gunnarro.android.smsfilter.service.impl.FilterServiceImpl;
 import com.gunnarro.android.smsfilter.service.impl.FilterServiceImpl.FilterTypeEnum;
 
 public class FilterServiceTest extends TestCase {
 
-    private SharedPreferences sharedPreferencesMock;
-    private Editor prefsEditorMock;
     private FilterServiceImpl filterService;
 
-    public void init() {
-        filterService = new FilterServiceImpl();
-        // init. mocks
-        sharedPreferencesMock = mock(SharedPreferences.class);
-        prefsEditorMock = mock(Editor.class);
-        filterService.setAppSharedPrefs(sharedPreferencesMock);
+    @Mock
+    private FilterRepositoryImpl filterRepositoryMock;
 
-        // Mock the logging of blocked sms part of the smsfilter class
-        String blockedNumbersLogList = "";
-        when(sharedPreferencesMock.getString("SMS_BLOCKED_LOG", FilterService.DEFAULT_VALUE)).thenReturn(blockedNumbersLogList);
-        when(prefsEditorMock.putString("SMS_BLOCKED_LOG", blockedNumbersLogList)).thenReturn(null);
-        when(prefsEditorMock.commit()).thenReturn(true);
+    public void init() {
+        // init. mocks
+        MockitoAnnotations.initMocks(this);
+        filterService = new FilterServiceImpl();
+        filterService.setFilterRepository(filterRepositoryMock);
     }
 
     public void testFilter() {
-        assertTrue(FilterServiceImpl.FilterTypeEnum.ALLOW_ALL.isAllowAll());
         assertTrue(FilterServiceImpl.FilterTypeEnum.SMS_BLACK_LIST.isBlackList());
         assertTrue(FilterServiceImpl.FilterTypeEnum.SMS_WHITE_LIST.isWhiteList());
-        assertTrue(FilterServiceImpl.FilterTypeEnum.SMS_CONTACTS.isContacts());
+        assertTrue(FilterServiceImpl.FilterTypeEnum.CONTACTS.isContacts());
     }
 
     public void testSMSBlockedlog() {
         init();
-        System.out.println(Long.toString(System.currentTimeMillis()));
-        String blockedListAsString = System.currentTimeMillis() + ":45465500;" + System.currentTimeMillis() + ":45465500;" + System.currentTimeMillis()
-                + ":45465501";
+        List<SMSLog> smsLogs = new ArrayList<SMSLog>();
+        smsLogs.add(new SMSLog(System.currentTimeMillis(), "45460000", SMSLog.STATUS_SMS_BLOCKED, FilterTypeEnum.SMS_BLACK_LIST.name()));
+        smsLogs.add(new SMSLog(System.currentTimeMillis(), "45460001", SMSLog.STATUS_SMS_BLOCKED, FilterTypeEnum.SMS_WHITE_LIST.name()));
+        smsLogs.add(new SMSLog(System.currentTimeMillis(), "45460002", SMSLog.STATUS_SMS_BLOCKED, FilterTypeEnum.CONTACTS.name()));
 
-        when(sharedPreferencesMock.getString("SMS_BLOCKED_LOG", FilterService.DEFAULT_VALUE)).thenReturn(blockedListAsString);
+        when(filterRepositoryMock.getLogList("number")).thenReturn(smsLogs);
 
-        List<SMS> smsList = filterService.getSMSList("number");
-        assertEquals(2, smsList.size());
-        assertEquals("45465500", smsList.get(0).getNumber());
-        assertEquals(2, smsList.get(0).getNumberOfBlocked());
-
-        smsList = filterService.getSMSList("year");
-        assertEquals(1, smsList.size());
-        assertEquals(3, smsList.get(0).getNumberOfBlocked());
-
-        smsList = filterService.getSMSList("month");
-        assertEquals(1, smsList.size());
-        assertEquals(3, smsList.get(0).getNumberOfBlocked());
-
-        smsList = filterService.getSMSList("day");
-        assertEquals(1, smsList.size());
-        assertEquals(3, smsList.get(0).getNumberOfBlocked());
-
-    }
-
-    public void testSaveFilterType() {
-        init();
-        filterService.save(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterServiceImpl.FilterTypeEnum.SMS_BLACK_LIST.name());
-        String storedFilterType = filterService.getValue(FilterService.SMS_ACTIVE_FILTER_TYPE);
-        assertEquals(FilterServiceImpl.FilterTypeEnum.SMS_BLACK_LIST.name(), storedFilterType);
+        List<SMSLog> logs = filterService.getLogs("number");
+        assertEquals(2, logs.size());
+        assertEquals("45460000", logs.get(0).getPhoneNumber());
+        assertEquals(1, logs.get(0).getCount());
+        assertEquals(FilterTypeEnum.SMS_BLACK_LIST.name(), logs.get(0).getFilterType());
+        assertEquals("", logs.get(0).getKey());
+        assertNotNull(logs.get(0).getReceivedTime());
+        assertEquals(SMSLog.STATUS_SMS_BLOCKED, logs.get(0).getStatus());
     }
 
     public void testBlackList() {
         init();
-        String blackListAsString = "45465500:true;45465501:true;45465503:false";
-        when(sharedPreferencesMock.getString(FilterTypeEnum.SMS_BLACK_LIST.name(), FilterService.DEFAULT_VALUE)).thenReturn(blackListAsString);
-        when(sharedPreferencesMock.getString(FilterService.SMS_ACTIVE_FILTER_TYPE, FilterService.DEFAULT_VALUE)).thenReturn(FilterTypeEnum.SMS_BLACK_LIST.name());
-
-        FilterServiceImpl filterService = new FilterServiceImpl();
-        filterService.setAppSharedPrefs(sharedPreferencesMock);
-        filterService.setPrefsEditor(prefsEditorMock);
+        List<Item> itemList = new ArrayList<Item>();
+        itemList.add(new Item("45465500", true));
+        itemList.add(new Item("45465501", true));
+        itemList.add(new Item("45465503", false));
+        itemList.add(new Item("45465503", false));
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_BLACK_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_BLACK_LIST.name())).thenReturn(itemList);
 
         // Do the testing
+        assertFalse(filterService.isBlocked("+4745465500"));
+        assertFalse(filterService.isBlocked("004745465500"));
         assertTrue(filterService.isBlocked("45465500"));
         assertTrue(filterService.isBlocked("45465501"));
         assertFalse(filterService.isBlocked("45465502"));
         assertFalse(filterService.isBlocked("47465502"));
         assertFalse(filterService.isBlocked("45465503"));
+        assertFalse(filterService.isBlocked(null));
+        assertFalse(filterService.isBlocked(""));
+        assertFalse(filterService.isBlocked("hidden"));
     }
 
+    public void testBlackListBlockCountryCode() {
+        init();
+        List<Item> itemList = new ArrayList<Item>();
+        itemList.add(new Item("+45*", true));
+        itemList.add(new Item("+46*", true));
+        itemList.add(new Item("*+47*", false));
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_BLACK_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_BLACK_LIST.name())).thenReturn(itemList);
+
+        // Do the testing
+        assertTrue(filterService.isBlocked("+4545465500"));
+        assertTrue(filterService.isBlocked("+4645465501"));
+        assertFalse(filterService.isBlocked("+4745465500"));
+        assertFalse(filterService.isBlocked("46465502"));
+        assertFalse(filterService.isBlocked("45465502"));
+    }
+
+    public void testBlackListEmptyList() {
+        init();
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_BLACK_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_BLACK_LIST.name())).thenReturn(new ArrayList<Item>());
+
+        // Do the testing
+        assertFalse(filterService.isBlocked("+4545465500"));
+        assertFalse(filterService.isBlocked("+46465501"));
+        assertFalse(filterService.isBlocked("45465502"));
+        assertFalse(filterService.isBlocked("+47455500"));
+    }
+
+    public void testWhiteList() {
+        init();
+        List<Item> itemList = new ArrayList<Item>();
+        itemList.add(new Item("45465500", true));
+        itemList.add(new Item("45465501", true));
+        itemList.add(new Item("45465503", false));
+        itemList.add(new Item("45465503", false));
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_WHITE_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_WHITE_LIST.name())).thenReturn(itemList);
+
+        // Do the testing
+        assertTrue(filterService.isBlocked("+4745465500"));
+        assertTrue(filterService.isBlocked("004745465500"));
+        assertFalse(filterService.isBlocked("45465500"));
+        assertFalse(filterService.isBlocked("45465501"));
+        assertTrue(filterService.isBlocked("45465502"));
+        assertTrue(filterService.isBlocked("47465502"));
+        assertTrue(filterService.isBlocked("45465503"));
+        assertTrue(filterService.isBlocked(null));
+        assertTrue(filterService.isBlocked(""));
+        assertTrue(filterService.isBlocked("hidden"));
+    }
+
+    public void testWhiteListAllowCountryCode() {
+        init();
+        List<Item> itemList = new ArrayList<Item>();
+        itemList.add(new Item("+45*", true));
+        itemList.add(new Item("+46*", true));
+        itemList.add(new Item("*+47*", false));
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_WHITE_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_WHITE_LIST.name())).thenReturn(itemList);
+
+        assertFalse(filterService.isBlocked("+4545465500"));
+        assertFalse(filterService.isBlocked("+4645465501"));
+        assertTrue(filterService.isBlocked("+4745465502"));
+        assertTrue(filterService.isBlocked("47465502"));
+    }
+
+    public void testWhiteListEmptyList() {
+        // Setup
+        init();
+        when(filterRepositoryMock.getActiveFilter()).thenReturn(new Filter(FilterTypeEnum.SMS_WHITE_LIST.name(), true));
+        when(filterRepositoryMock.getItemList(FilterTypeEnum.SMS_WHITE_LIST.name())).thenReturn(new ArrayList<Item>());
+
+        // Do the testing
+        assertTrue(filterService.isBlocked("+4745465500"));
+        assertTrue(filterService.isBlocked("+4645465501"));
+        assertTrue(filterService.isBlocked("+4545465502"));
+        assertTrue(filterService.isBlocked("47465502"));
+    }
+
+    public void testSearchFilter() {
+        assertTrue("+4745465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertFalse("+4645465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertFalse("+4545465500".matches(FilterServiceImpl.createSearch("+47*")));
+        assertTrue("45465500".matches(FilterServiceImpl.createSearch("45465500")));
+        assertFalse("45465500".matches(FilterServiceImpl.createSearch("92019486")));
+        assertTrue("45465500".matches(FilterServiceImpl.createSearch("4546550*")));
+        assertTrue("45465501".matches(FilterServiceImpl.createSearch("4546550*")));
+        assertFalse("skjult nummer".matches(FilterServiceImpl.createSearch("hidden")));
+        assertFalse("HIDDEN NUMBER".matches(FilterServiceImpl.createSearch("hidden")));
+        assertFalse("asdf2345".matches(FilterServiceImpl.createSearch("hidden")));
+    }
+
+    public void testGetLogStartDateAndEndDate() {
+        // Setup
+        init();
+        List<SMSLog> logs = new ArrayList<SMSLog>();
+        when(filterRepositoryMock.getLogListOrderByDate()).thenReturn(logs);
+        List<SMSLog> logStartAndEndDate = filterService.getLogsStartDateAndEndDate();
+        assertEquals(2, logStartAndEndDate.size());
+        assertNotNull("", logStartAndEndDate.get(0).getReceivedTime());
+        assertNotNull("", logStartAndEndDate.get(1).getReceivedTime());
+
+    }
+
+    public void testGetLogEndDate() {
+        // Setup
+        init();
+        List<SMSLog> logs = new ArrayList<SMSLog>();
+        when(filterRepositoryMock.getLogListOrderByDate()).thenReturn(logs);
+        SMSLog log = filterService.getLogsEndDate();
+        assertNotNull("", log.getReceivedTime());
+    }
 }
